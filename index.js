@@ -16,8 +16,8 @@ var distanceTransform = require('distance-transform');
 const parser = new DOMParser();
 var texture;
 
-const WIDTH = 450;
-const HEIGHT = 450;
+const WIDTH = 1000;
+const HEIGHT = 1000;
 const PADDING = 5;
 
 let context = getContext('2d', {
@@ -32,12 +32,13 @@ let defaultChars = [
   'w','x','y','z', '!','@','#','$','%','^','&','*','(',')',':',';',
   '{','}','|','?','>','<','+','_','-','/','\'','~','`',
   '1','2','3','4','5','6','7','8','9','0','[',']','\"',
-  ',','.','=','\\'
+  ',','.','=','\\', ' ', 'A','B','C','D','E','F','G','H','I','J','K','L','N','M','O'
+  ,'P','Q','R','S','T','U','V','W','X','Y','Z'
 ];
 // defaultChars = ['f', '}', 'j'];
 const attributes = {
   fill: 'white', 
-  stroke: 'white',
+  //stroke: 'white',
 };
 
 const DEFAULT_OPTS = {
@@ -45,13 +46,13 @@ const DEFAULT_OPTS = {
   sdf: false,
   width: WIDTH,
   height: HEIGHT,
-  lineHeight: 40,
+  lineHeight: 72,
   base: 30,
   letterSpacing: 0,
   options: {
     x: 0, 
     y: 0, 
-    fontSize: 48, 
+    fontSize: 72, 
     kerning: false,
     anchor: 'left top', 
     attributes: attributes
@@ -94,17 +95,11 @@ OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
           if (err) throw err;
           div.appendChild(domSVG.children[0]);
           const glyphPaths = document.getElementsByTagName('path');
-          let width = 0; let height = 0;
-          Object.keys(glyphPaths).forEach(function(key) {
-            const dimensions = getGlyphDimensions(glyphPaths[key]);
-            if(dimensions.width > width) width = dimensions.width;
-            if(dimensions.height > height) height = dimensions.height;
-          });
-          
+          let width = image.naturalWidth; let height = image.naturalHeight;
           context.drawImage(image, dX, dY);
           // uint8 for bmfont
-          let imageData = context.getImageData(dX, dY, metrics.width, metrics.height);
-          let sdfBitmap = context.getImageData(dX, dY, metrics.width, metrics.height);
+          let imageData = context.getImageData(dX, dY, width, height);
+          let sdfBitmap = context.getImageData(dX, dY, width, height);
           // TODO use distance transforms
           // sdfBitmap.data.set(context.getImageData(dX, dY, metrics.width, metrics.height));
           // let ndArr = ndarray(sdfBitmap.data, [metrics.width, metrics.height]);
@@ -114,25 +109,25 @@ OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
           // let disRes = distanceTransform(ndArr, 1);
           // sdfBitmap.data.set(disRes);
           // clear context by putting empty image data
-          let clearImage = context.createImageData(metrics.width + PADDING, metrics.height + PADDING);
+          let clearImage = context.createImageData(WIDTH, HEIGHT);
           context.putImageData(clearImage, 0, 0); 
           glyphs.push({
             id: glyph.charCodeAt(),
-            xadvance: metrics.width + PADDING,
-            width: parseInt(width + PADDING),
-            height: parseInt(height + PADDING),
+            xadvance: width,
+            yadvance: height,
+            width: parseInt(width),
+            height: parseInt(height),
             bitmap: imageData,
             // sdfBitmap: sdfBitmap,
             shape: [parseInt(width), parseInt(height), 1],
             page: 0,
-            xoffset: width + PADDING,
-            yoffset: height + PADDING,
+            xoffset: PADDING,
+            yoffset: 0,
             chnl: 0
           });
           if(i === opts.chars.length - 1) {
             let result = pack(glyphs);
-            result.items.forEach(function(item) {
-               item.yOffset = item.y + PADDING; 
+            result.items.forEach(function(item) { 
                context.putImageData(item.item.bitmap, item.x, item.y);
                // sdfContext.putImageData(item.item.sdfBitmap, item.x, item.y);
             })
@@ -141,17 +136,18 @@ OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
               div.remove(div.children[key]);
             });
             
-              // TEMP for testing
-             var imgData = new ImageData(WIDTH, HEIGHT);
-             imgData.data.set(context.getImageData(0,0, WIDTH, HEIGHT).data);
-             var array = ndarray(imgData.data, [WIDTH, HEIGHT * 4]);
-             var res = imageSdf(array, { spread: 32, downscale: 1 });
-             imgData = new ImageData(WIDTH, HEIGHT);
-             imgData.data.set(res.data);
-             sdfContext.putImageData(imgData, 0, 0);
-            // document.body.appendChild(context.canvas);
-            // document.body.appendChild(sdfContext.canvas);
-            // 
+            // TEMP for testing
+            var imgData = new ImageData(WIDTH, HEIGHT);
+            imgData.data.set(context.getImageData(0,0, WIDTH, HEIGHT).data);
+            var array = ndarray(imgData.data, [WIDTH, HEIGHT * 4]);
+            var res = imageSdf(array, { spread: 10, downscale: 1 });
+            imgData = new ImageData(WIDTH, HEIGHT);
+            imgData.data.set(res.data);
+            sdfContext.putImageData(imgData, 0, 0);
+
+            //document.body.appendChild(context.canvas);
+            //document.body.appendChild(sdfContext.canvas);
+             
             _this.createJSON(result, sdfContext, library.font, opts);
             if(callback) callback(undefined, _this);
           }
@@ -175,12 +171,8 @@ OpenTypeBmFont.prototype.createJSON = function(glyphs, context, font, opts) {
   this.JSON.common = opts;
   this.JSON.info = font;
   // this.JSON.kernings = font.kerningPairs;
-
-  // document.body.appendChild(context.canvas);
   let page = context.getImageData(0, 0, opts.width, opts.height);
-  // document.body.removeChild(context.canvas);
   this.JSON.pages.push(page);
-  // console.log(this.JSON);
 }
 
 function getGlyphDimensions(glyphPath) {

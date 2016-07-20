@@ -62,6 +62,9 @@
     "babelify": "^7.2.0",
     "browserify": "^13.0.1",
     "budo": "^8.3.0",
+    "glsl-aastep": "^1.0.1",
+    "glsl-noise": "0.0.0",
+    "glslify": "^5.1.0",
     "three-bmfont-text": "^2.1.0",
     "three-orbit-viewer": "^69.3.0"
   },
