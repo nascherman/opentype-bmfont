@@ -26,31 +26,7 @@ let opts = {
 };
 let app;
 require('domready')(function() {
-  let gui = new dat.GUI( {
-    height: 5 * 32
-  }); 
-  let fontOptions = gui.addFolder('Fonts');
-  fonts.forEach(function(font) {
-    fontOptions.add(opts, 'load').name(font)
-      .onChange(function() {
-        opts.text = './demo/fonts/' + font;
-        clearScene();
-        demo();
-      });
-  });
-  demo();
-});
-
-function demo() {
-  document.body.style.background = '#1f1f1f';
-  BmFont.createBitmap('./demo/fonts/DejaVuSans.ttf', {}, function(err, result) {
-    var texture = new THREE.Texture(result.JSON.pages[0]);
-    createFont(result, texture);
-  });  
-}
-
-function createFont(res, texture) {
-  const opts = {
+  const sceneOpts = {
     renderer: {
       antialias: true,
       alpha: true
@@ -62,17 +38,39 @@ function createFont(res, texture) {
       type: 'orbit'
     }
   };
-  const { 
+  let { 
     renderer,
     camera,
     scene,
     controls,
     updateControls
-  } = createScene(opts, THREE);
+  } = createScene(sceneOpts, THREE);
+  
   window.scene = scene;
+  let gui = new dat.GUI( {
+    height: 5 * 32
+  }); 
+  let fontOptions = gui.addFolder('Fonts');
+  fonts.forEach(function(font) {
+    fontOptions.add(opts, 'load').name(font)
+      .onChange(function() {
+        opts.text = '/demo/fonts/' + font;
+        clearScene(window.scene, demo.bind(this, renderer, camera, scene, controls, updateControls));
+      });
+  });
+  demo(renderer, camera, scene, controls, updateControls);
+});
+
+function demo(renderer, camera, scene, controls, updateControls) {
+  document.body.style.background = '#1f1f1f';
+  BmFont.createBitmap(opts.text, {}, function(err, result) {
+    var texture = new THREE.Texture(result.JSON.pages[0]);
+    createFont(result, texture, renderer, camera, scene, controls, updateControls);
+  });  
+}
+
+function createFont(res, texture, renderer, camera, scene, controls, updateControls) {
   camera.far = 10000;
-
-
   var maxAni = renderer.getMaxAnisotropy();
   texture.needsUpdate = true;
   texture.minFilter = THREE.NearestFilter;
@@ -109,18 +107,17 @@ function createFont(res, texture) {
   textAnchor.add(text)
   scene.add(textAnchor)
 
-  function clearScene(cb) {
-    scene.children.forEach(function(item) {
-      scene.remove(item);
-    });
-    if(cb) cb();
-  }
-
-
   loop((dt) => {
     updateControls();
     renderer.render(scene, camera);
   }).start();
+}
+
+function clearScene(scene, cb) {
+  scene.children.forEach(function(item) {
+    scene.remove(item);
+  });
+  if(cb) cb();
 }
 
 function getCopy () {
