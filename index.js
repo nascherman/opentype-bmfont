@@ -5,12 +5,10 @@ var defaults = require('lodash.defaults');
 var xtend = require('xtend');
 var pack = require('bin-pack');
 var ndarrayPack = require('ndarray-bin-pack');
-var getPixels = require('get-image-pixels')
 var ndarray = require('ndarray');
-var pixmap = require('ndarray-bitmap-to-rgba').opaque;
 var imageSdf = require('image-sdf');
-var fromImage = require('ndarray-from-image');
-var distanceTransform = require('distance-transform');
+// var fromImage = require('ndarray-from-image');
+// var distanceTransform = require('distance-transform');
 
 var parser = new DOMParser();
 var texture;

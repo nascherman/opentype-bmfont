@@ -109,18 +109,18 @@ function createFont(res, texture) {
   textAnchor.add(text)
   scene.add(textAnchor)
 
+  function clearScene(cb) {
+    scene.children.forEach(function(item) {
+      scene.remove(item);
+    });
+    if(cb) cb();
+  }
+
 
   loop((dt) => {
     updateControls();
     renderer.render(scene, camera);
   }).start();
-}
-
-function clearScene(cb) {
-  scene.children.forEach(function(item) {
-    scene.remove(item);
-  });
-  if(cb) cb();
 }
 
 function getCopy () {
