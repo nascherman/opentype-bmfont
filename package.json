@@ -1,6 +1,6 @@
 {
   "name": "opentype-bmfont",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "convert font files to bitmap fonts for sdf etc.",
   "main": "index.js",
   "scripts": {
@@ -21,14 +21,10 @@
     "distance",
     "field"
   ],
-  "dependencies": {
-    "a-big-triangle": "^1.0.2",
-    "baboon-image": "^2.0.0",
+  "dependencies": {  
     "bin-pack": "^1.0.2",
     "binpacking": "0.0.1",
-    "distance-transform": "git+https://github.com/scijs/distance-transform.git",
     "domready": "^1.0.8",
-    "get-canvas-context": "^1.0.2",
     "get-image-pixels": "^1.0.1",
     "gl-shader": "^4.2.0",
     "gl-texture2d": "^2.0.10",
@@ -42,9 +38,7 @@
     "ndarray-bitmap-to-rgba": "^1.0.0",
     "ndarray-from-image": "^1.0.1",
     "opentype-layout": "^1.1.0",
-    "svg-sprite": "^1.3.3",
     "svg-to-image": "^1.1.3",
-    "svg-to-png": "^3.1.0",
     "text-to-svg": "^3.0.1",
     "three": "^0.79.0",
     "xtend": "^4.0.1"
