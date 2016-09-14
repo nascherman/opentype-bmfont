@@ -2,10 +2,42 @@ const OpenTypeBmFont = require('./');
 let BmFont = new OpenTypeBmFont();
 global. THREE = require('three');
 var SDFShader = require('./shaders/sdf')
-// var loader = new THREE.TextureLoader();
 let createText = require('three-bmfont-text');
-var createOrbitViewer = require('three-orbit-viewer')(THREE);
-require('domready')(function() { 
+let createScene = require('scene-template');
+let loop = require('raf-loop');
+
+let renderer, camera, scene;
+
+const fonts = [
+  'Cantarell-Regular.ttf', 
+  'DejaVuSans.ttf', 
+  'firstv2.ttf',
+  'ipag.ttf',
+  'Lobster.otf',
+  'Pacifico.ttf',
+  'Pecita.otf',
+  'spaceAge.otf',
+  'tngan.ttf'
+];
+let opts = {
+  text: './demo/fonts/Pecita.otf',
+  fonts: fonts,
+  load: function() {}
+};
+let app;
+require('domready')(function() {
+  let gui = new dat.GUI( {
+    height: 5 * 32
+  }); 
+  let fontOptions = gui.addFolder('Fonts');
+  fonts.forEach(function(font) {
+    fontOptions.add(opts, 'load').name(font)
+      .onChange(function() {
+        opts.text = './demo/fonts/' + font;
+        clearScene();
+        demo();
+      });
+  });
   demo();
 });
 
@@ -18,13 +50,30 @@ function demo() {
 }
 
 function createFont(res, texture) {
-  var app = createOrbitViewer({
-    clearColor: 'rgb(40, 40, 40)',
-    clearAlpha: 1.0,
-    fov: 55,
-    position: new THREE.Vector3(0, 0, -2)
-  });
-  var maxAni = app.renderer.getMaxAnisotropy();
+  const opts = {
+    renderer: {
+      antialias: true,
+      alpha: true
+    },
+    controls: {
+      theta: 0 * Math.PI / 180,
+      phi: -90 * Math.PI / 180,
+      distance: 12,
+      type: 'orbit'
+    }
+  };
+  const { 
+    renderer,
+    camera,
+    scene,
+    controls,
+    updateControls
+  } = createScene(opts, THREE);
+  window.scene = scene;
+  camera.far = 10000;
+
+
+  var maxAni = renderer.getMaxAnisotropy();
   texture.needsUpdate = true;
   texture.minFilter = THREE.NearestFilter;
   texture.magFilter = THREE.LinearFilter;
@@ -33,15 +82,12 @@ function createFont(res, texture) {
 
   var copy = getCopy()
 
-  // create our text geometry
   var geom = createText({
-    text: copy, // the string to render
-    font: res.JSON, // the bitmap font definition
-    width: 4000 // optional width for word-wrap
+    text: copy,
+    font: res.JSON,
+    width: 4000
   })
 
-  // here we use 'three-bmfont-text/shaders/sdf'
-  // to help us build a shader material
   var material = new THREE.RawShaderMaterial(SDFShader({
     map: texture,
     side: THREE.DoubleSide,
@@ -55,18 +101,26 @@ function createFont(res, texture) {
   text.position.x = -layout.width / 2
   // origin uses bottom left of last line
   // so we need to move it down a fair bit
-  text.position.y = layout.height * 1.035
+  text.position.y = layout.height * 0.7;
 
   // scale it down so it fits in our 3D units
   var textAnchor = new THREE.Object3D()
   textAnchor.scale.multiplyScalar(-0.005)
   textAnchor.add(text)
-  app.scene.add(textAnchor)
+  scene.add(textAnchor)
 
-  // scroll text
-  app.on('tick', function (t) {
-    text.position.y = 0.9
-  })
+
+  loop((dt) => {
+    updateControls();
+    renderer.render(scene, camera);
+  }).start();
+}
+
+function clearScene(cb) {
+  scene.children.forEach(function(item) {
+    scene.remove(item);
+  });
+  if(cb) cb();
 }
 
 function getCopy () {

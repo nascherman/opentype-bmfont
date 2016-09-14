@@ -1,9 +1,8 @@
-const TextToSVG = require('text-to-svg');
-const svgToImage = require('svg-to-image');
-const computeLayout = require('opentype-layout');
-var getContext = require('get-canvas-context');
-const defaults = require('lodash.defaults');
-const xtend = require('xtend');
+var TextToSVG = require('text-to-svg');
+var svgToImage = require('svg-to-image');
+var computeLayout = require('opentype-layout');
+var defaults = require('lodash.defaults');
+var xtend = require('xtend');
 var pack = require('bin-pack');
 var ndarrayPack = require('ndarray-bin-pack');
 var getPixels = require('get-image-pixels')
@@ -13,19 +12,22 @@ var imageSdf = require('image-sdf');
 var fromImage = require('ndarray-from-image');
 var distanceTransform = require('distance-transform');
 
-const parser = new DOMParser();
+var parser = new DOMParser();
 var texture;
 
-const WIDTH = 1000;
-const HEIGHT = 1000;
-const PADDING = 5;
+var WIDTH = 1000;
+var HEIGHT = 1000;
+var PADDING = 5;
 
-let context = getContext('2d', {
-  width: WIDTH, height: HEIGHT
-});
-let sdfContext = getContext('2d', {
-  width: WIDTH, height: HEIGHT
-});
+var canvas = document.createElement('canvas');
+canvas.width = WIDTH;
+canvas.height = HEIGHT;
+var context = canvas.getContext('2d');
+
+var sdfCanvas = document.createElement('canvas');
+sdfCanvas.width = WIDTH;
+sdfCanvas.height = HEIGHT;
+var sdfContext = canvas.getContext('2d');
 
 let defaultChars = [
   'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v',
@@ -35,7 +37,7 @@ let defaultChars = [
   ',','.','=','\\', ' ', 'A','B','C','D','E','F','G','H','I','J','K','L','N','M','O'
   ,'P','Q','R','S','T','U','V','W','X','Y','Z'
 ];
-// defaultChars = ['f', '}', 'j'];
+
 const attributes = {
   fill: 'white', 
   //stroke: 'white',
@@ -73,8 +75,6 @@ OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
   callback = callback || noop;
   defaults(opts, DEFAULT_OPTS);
   let _this = this;
-  let div = document.createElement('div');
-  document.body.appendChild(div);
   TextToSVG.load(fontFace, function(err, library) {
     if(err) console.warn(err);
     else {
@@ -93,7 +93,6 @@ OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
         
         svgToImage(svg, function(err, image) {
           if (err) throw err;
-          div.appendChild(domSVG.children[0]);
           const glyphPaths = document.getElementsByTagName('path');
           let width = image.naturalWidth; let height = image.naturalHeight;
           context.drawImage(image, dX, dY);
@@ -131,12 +130,7 @@ OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
                context.putImageData(item.item.bitmap, item.x, item.y);
                // sdfContext.putImageData(item.item.sdfBitmap, item.x, item.y);
             })
-
-            Object.keys(div.children).forEach(function(key) {
-              div.remove(div.children[key]);
-            });
             
-            // TEMP for testing
             var imgData = new ImageData(WIDTH, HEIGHT);
             imgData.data.set(context.getImageData(0,0, WIDTH, HEIGHT).data);
             var array = ndarray(imgData.data, [WIDTH, HEIGHT * 4]);
