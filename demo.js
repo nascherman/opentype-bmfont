@@ -20,7 +20,7 @@ const fonts = [
   'tngan.ttf'
 ];
 let opts = {
-  text: './demo/fonts/Pecita.otf',
+  text: './assets/fonts/Pecita.otf',
   fonts: fonts,
   load: function() {}
 };
@@ -54,7 +54,7 @@ require('domready')(function() {
   fonts.forEach(function(font) {
     fontOptions.add(opts, 'load').name(font)
       .onChange(function() {
-        opts.text = '/demo/fonts/' + font;
+        opts.text = '/assets/fonts/' + font;
         clearScene(window.scene, demo.bind(this, renderer, camera, scene, controls, updateControls));
       });
   });

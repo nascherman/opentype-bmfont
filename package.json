@@ -5,9 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "budo demo.js:bundle.js --debug --dir static --live --debug -- -t glslify",
-    "build": "browserify demo.js -t babelify  > static/bundle.js",
-    "postinstall": "npm run build",
-    "heroku-start": "node server.js"
+    "build": "browserify demo.js -t babelify > static/bundle.js",
+    "postinstall": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -43,9 +42,6 @@
     "distance-transform": "git+https://github.com/scijs/distance-transform.git",
     "domready": "^1.0.8",
     "express": "^4.14.0",
-    "bin-pack": "^1.0.2",
-    "binpacking": "0.0.1",
-    "domready": "^1.0.8",
     "get-image-pixels": "^1.0.1",
     "gl-shader": "^4.2.0",
     "gl-texture2d": "^2.0.10",
@@ -69,6 +65,7 @@
     "three": "^0.79.0",
     "three-bmfont-text": "^2.1.0",
     "three-orbit-viewer": "^69.3.0",
+    "uglifyjs": "^2.4.10",
     "xtend": "^4.0.1"
   },
   "author": "nascherman",
