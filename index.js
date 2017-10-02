@@ -68,85 +68,110 @@ function OpenTypeBmFont(opts) {
   this.JSON = {};
 }
 
-OpenTypeBmFont.prototype.createBitmap = function(fontFace, opts, callback) {
+OpenTypeBmFont.prototype._svgToImage = function(svg, glyph, dX, dY) {
+  return new Promise((resolve, reject) => {
+    svgToImage(svg, function(err, image) {
+      if (err != null) {
+        reject(err);
+        return null;
+      }
+      const glyphPaths = document.getElementsByTagName('path');
+      let width = image.naturalWidth; let height = image.naturalHeight;
+      context.drawImage(image, dX, dY);
+      // uint8 for bmfont
+      let imageData = context.getImageData(dX, dY, width, height);
+      let sdfBitmap = context.getImageData(dX, dY, width, height);
+      // TODO use distance transforms
+      // sdfBitmap.data.set(context.getImageData(dX, dY, metrics.width, metrics.height));
+      // let ndArr = ndarray(sdfBitmap.data, [metrics.width, metrics.height]);
+      // var img = document.createElement('img');
+      // img.src = context.canvas.toDataURL('image/png');
+      // let ndArr = fromImage(img, 'float64');
+      // let disRes = distanceTransform(ndArr, 1);
+      // sdfBitmap.data.set(disRes);
+      // clear context by putting empty image data
+      let clearImage = context.createImageData(WIDTH, HEIGHT);
+      context.putImageData(clearImage, 0, 0); 
+      const glyphImage = {
+        id: glyph.charCodeAt(),
+        xadvance: width,
+        yadvance: height,
+        width: parseInt(width),
+        height: parseInt(height),
+        bitmap: imageData,
+        // sdfBitmap: sdfBitmap,
+        shape: [parseInt(width), parseInt(height), 1],
+        page: 0,
+        xoffset: PADDING,
+        yoffset: 0,
+        chnl: 0
+      };
+      resolve(glyphImage);
+    });
+  });
+};
+
+OpenTypeBmFont.prototype._textToSVG = async function(fontFace, opts, callback){
+  return await TextToSVG.load(fontFace, async function(err, library) {
+    if(err) {
+      console.error(err);
+      callback(err, this);
+      return null;
+    }
+
+    let dX = 0;
+    let dY = 0;
+    let glyphs = [];
+    let sdfGlyphs = [];
+    for(let i = 0; i < opts.chars.length; i++){
+      let glyph = opts.chars[i];
+      const metrics = library.getMetrics(glyph);
+      const text = glyph;
+      let svg = library.getSVG(text, opts.options);
+      let domSVG = parser.parseFromString(svg, "image/svg+xml");
+      let svgDom = domSVG.children[0];
+      svgDom.style['background-color'] = 'black';
+      svg = domSVG.children[0].outerHTML;
+
+      glyphs.push({svg, glyph, dX, dY});
+    }
+
+    return await Promise.all(glyphs.map(async glyphSVG => {
+      return await this._svgToImage(glyphSVG.svg, glyphSVG.glyph, glyphSVG.dX, glyphSVG.dY);
+    })).then((glyphImages) => {
+      let result = pack(glyphImages);
+      result.items.forEach(function(item) { 
+          context.putImageData(item.item.bitmap, item.x, item.y);
+          // sdfContext.putImageData(item.item.sdfBitmap, item.x, item.y);
+      })
+      
+      var imgData = new ImageData(WIDTH, HEIGHT);
+      imgData.data.set(context.getImageData(0,0, WIDTH, HEIGHT).data);
+      var array = ndarray(imgData.data, [WIDTH, HEIGHT * 4]);
+      var res = imageSdf(array, { spread: 10, downscale: 1 });
+      imgData = new ImageData(WIDTH, HEIGHT);
+      imgData.data.set(res.data);
+      sdfContext.putImageData(imgData, 0, 0);
+      
+      //document.body.appendChild(context.canvas);
+      //document.body.appendChild(sdfContext.canvas);
+        
+      this.createJSON(result, sdfContext, library.font, opts);
+      if(callback) callback(undefined, this);
+    }).catch(reason => {
+      if (callback) {
+        console.error(reason);
+        callback(reason, this);
+      }
+    });
+  }.bind(this));
+};
+
+OpenTypeBmFont.prototype.createBitmap = async function(fontFace, opts, callback) {
   if(fontFace === undefined) throw new Error('must defined a font face');
   callback = callback || noop;
   defaults(opts, DEFAULT_OPTS);
-  let _this = this;
-  TextToSVG.load(fontFace, function(err, library) {
-    if(err) console.warn(err);
-    else {
-      let dX = 0;
-      let dY = 0;
-      let glyphs = [];
-      let sdfGlyphs = [];
-      opts.chars.forEach(function(glyph, i) {
-        const metrics = library.getMetrics(glyph);
-        const text = glyph;
-        let svg = library.getSVG(text, opts.options);
-        let domSVG = parser.parseFromString(svg, "image/svg+xml");
-        let svgDom = domSVG.children[0];
-        svgDom.style['background-color'] = 'black';
-        svg = domSVG.children[0].outerHTML;
-        
-        svgToImage(svg, function(err, image) {
-          if (err) throw err;
-          const glyphPaths = document.getElementsByTagName('path');
-          let width = image.naturalWidth; let height = image.naturalHeight;
-          context.drawImage(image, dX, dY);
-          // uint8 for bmfont
-          let imageData = context.getImageData(dX, dY, width, height);
-          let sdfBitmap = context.getImageData(dX, dY, width, height);
-          // TODO use distance transforms
-          // sdfBitmap.data.set(context.getImageData(dX, dY, metrics.width, metrics.height));
-          // let ndArr = ndarray(sdfBitmap.data, [metrics.width, metrics.height]);
-          // var img = document.createElement('img');
-          // img.src = context.canvas.toDataURL('image/png');
-          // let ndArr = fromImage(img, 'float64');
-          // let disRes = distanceTransform(ndArr, 1);
-          // sdfBitmap.data.set(disRes);
-          // clear context by putting empty image data
-          let clearImage = context.createImageData(WIDTH, HEIGHT);
-          context.putImageData(clearImage, 0, 0); 
-          glyphs.push({
-            id: glyph.charCodeAt(),
-            xadvance: width,
-            yadvance: height,
-            width: parseInt(width),
-            height: parseInt(height),
-            bitmap: imageData,
-            // sdfBitmap: sdfBitmap,
-            shape: [parseInt(width), parseInt(height), 1],
-            page: 0,
-            xoffset: PADDING,
-            yoffset: 0,
-            chnl: 0
-          });
-          if(i === opts.chars.length - 1) {
-            let result = pack(glyphs);
-            result.items.forEach(function(item) { 
-               context.putImageData(item.item.bitmap, item.x, item.y);
-               // sdfContext.putImageData(item.item.sdfBitmap, item.x, item.y);
-            })
-            
-            var imgData = new ImageData(WIDTH, HEIGHT);
-            imgData.data.set(context.getImageData(0,0, WIDTH, HEIGHT).data);
-            var array = ndarray(imgData.data, [WIDTH, HEIGHT * 4]);
-            var res = imageSdf(array, { spread: 10, downscale: 1 });
-            imgData = new ImageData(WIDTH, HEIGHT);
-            imgData.data.set(res.data);
-            sdfContext.putImageData(imgData, 0, 0);
-
-            //document.body.appendChild(context.canvas);
-            //document.body.appendChild(sdfContext.canvas);
-             
-            _this.createJSON(result, sdfContext, library.font, opts);
-            if(callback) callback(undefined, _this);
-          }
-        });
-      });
-    }
-  });
+  return await this._textToSVG(fontFace, opts, callback);
 };
 
 OpenTypeBmFont.prototype.createJSON = function(glyphs, context, font, opts) {
@@ -164,6 +189,7 @@ OpenTypeBmFont.prototype.createJSON = function(glyphs, context, font, opts) {
   this.JSON.info = font;
   // this.JSON.kernings = font.kerningPairs;
   let page = context.getImageData(0, 0, opts.width, opts.height);
+
   this.JSON.pages.push(page);
 }
 
