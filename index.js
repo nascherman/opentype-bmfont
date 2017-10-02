@@ -111,16 +111,12 @@ OpenTypeBmFont.prototype._svgToImage = function(svg, glyph, dX, dY) {
   });
 };
 
-OpenTypeBmFont.prototype.createBitmap = async function(fontFace, opts, callback) {
-  if(fontFace === undefined) throw new Error('must defined a font face');
-  callback = callback || noop;
-  defaults(opts, DEFAULT_OPTS);
-  let _this = this;
+OpenTypeBmFont.prototype._textToSVG = async function(fontFace, opts, callback){
   return await TextToSVG.load(fontFace, async function(err, library) {
     if(err) {
-      console.warn(err);
-      if(callback) callback(err, _this);
-      return;
+      console.error(err);
+      callback(err, this);
+      return null;
     }
 
     let dX = 0;
@@ -141,16 +137,7 @@ OpenTypeBmFont.prototype.createBitmap = async function(fontFace, opts, callback)
     }
 
     return await Promise.all(glyphs.map(async glyphSVG => {
-      try {
-        return await this._svgToImage(glyphSVG.svg, glyphSVG.glyph, glyphSVG.dX, glyphSVG.dY);
-      } catch (error) {
-        // log and return invalid
-        console.error(error.name, error.message);
-        if(callback) {
-          callback(error, _this);
-        }
-        return Promise.reject();
-      }
+      return await this._svgToImage(glyphSVG.svg, glyphSVG.glyph, glyphSVG.dX, glyphSVG.dY);
     })).then((glyphImages) => {
       let result = pack(glyphImages);
       result.items.forEach(function(item) { 
@@ -169,15 +156,22 @@ OpenTypeBmFont.prototype.createBitmap = async function(fontFace, opts, callback)
       //document.body.appendChild(context.canvas);
       //document.body.appendChild(sdfContext.canvas);
         
-      _this.createJSON(result, sdfContext, library.font, opts);
-      if(callback) callback(undefined, _this);
-    }, reason => {
+      this.createJSON(result, sdfContext, library.font, opts);
+      if(callback) callback(undefined, this);
+    }).catch(reason => {
       if (callback) {
         console.error(reason);
-        callback(reason, _this);
+        callback(reason, this);
       }
     });
   }.bind(this));
+};
+
+OpenTypeBmFont.prototype.createBitmap = async function(fontFace, opts, callback) {
+  if(fontFace === undefined) throw new Error('must defined a font face');
+  callback = callback || noop;
+  defaults(opts, DEFAULT_OPTS);
+  return await this._textToSVG(fontFace, opts, callback);
 };
 
 OpenTypeBmFont.prototype.createJSON = function(glyphs, context, font, opts) {
