@@ -20,12 +20,21 @@ const fonts = [
   'tngan.ttf'
 ];
 let opts = {
-  text: './assets/fonts/Pecita.otf',
+  text: './assets/fonts/DejaVuSans.ttf',
   fonts: fonts,
   load: function() {}
 };
 let app;
-require('domready')(function() {
+require('domready')(async function() {
+
+  let outCanvas = document.createElement("canvas");
+  outCanvas.width = 1000;
+  outCanvas.height = 1000;
+  let outCtx = outCanvas.getContext("2d");
+  outCtx.clearRect(0, 0, outCanvas.width, outCanvas.height);
+  
+  document.getElementById("out").appendChild(outCanvas);
+
   const sceneOpts = {
     renderer: {
       antialias: true,
@@ -51,19 +60,24 @@ require('domready')(function() {
     height: 5 * 32
   }); 
   let fontOptions = gui.addFolder('Fonts');
-  fonts.forEach(function(font) {
-    fontOptions.add(opts, 'load').name(font)
-      .onChange(function() {
+  fonts.forEach(async function(font) {
+    await fontOptions.add(opts, 'load').name(font)
+      .onChange(async function() {
         opts.text = '/assets/fonts/' + font;
-        clearScene(window.scene, demo.bind(this, renderer, camera, scene, controls, updateControls));
+        clearScene(window.scene, await demo.bind(this, renderer, camera, scene, controls, updateControls, outCtx));
       });
   });
-  demo(renderer, camera, scene, controls, updateControls);
+  await demo(renderer, camera, scene, controls, updateControls, outCtx);
 });
 
-function demo(renderer, camera, scene, controls, updateControls) {
+async function demo(renderer, camera, scene, controls, updateControls, outCtx) {
   document.body.style.background = '#1f1f1f';
-  BmFont.createBitmap(opts.text, {}, function(err, result) {
+  await BmFont.createBitmap(opts.text, {}, function(err, result) {
+    if (err != null) {
+      return;
+    }
+    outCtx.putImageData(result.JSON.pages[0], 0, 0);
+    //document.getElementById('OUT_EX').src = outCtx.canvas.toDataURL("image/png");
     var texture = new THREE.Texture(result.JSON.pages[0]);
     createFont(result, texture, renderer, camera, scene, controls, updateControls);
   });  
